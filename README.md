@@ -85,8 +85,6 @@ Here is the miner's output:
 
 ## Nvidia-setting and overclocking
 
-You can play with GPU's memory frequencies within factory limits with `nvidia-smi` utility. But if you want to go beyond the limits, use `nvidia-settings` GUI utility.
-
 When nvidia-settings starts, it reads the current settings from its configuration file (typically ~/.nvidia-settings-rc) and sends those settings to the X server.  Then, it displays a graphical user interface  (GUI) for configuring the current settings.  When nvidia-settings exits, it queries the current settings from the X server and saves them to the configuration file.
 
 ## Nvidia-settings over ssh
@@ -105,64 +103,68 @@ If you prefer to use ssh connection and run graphical utility remotely, you need
 
 ## Overclocking
 
-Now the fun begins. 
+Depending on the load, the GPU changes its frequency. A sudden change of load causes a change in frequency - this leads to computational errors.
+
+The best option would be to lock the processor frequency at a certain level - this will increase the stability of the GPU.
+
+The higher the locked frequency of the processor, the higher the power consumption and the higher the computational performance. It is important for gaming.
+
+But for mining it is even more important the frequency of RAM. It determines the amount of information that the GPU can download / upload per second.
+
+Increasing the frequency of the RAM directly affects the hashrate and it does not require as much power consumption as computational processor.
+
+Therefore, it is often a wise decision to increase the frequency of the RAM, while fixing the frequency of the GPU in the area where it consumes a little power.
+
+You can lock GPU frequencies and set up maximum power consumption limits with `nvidia-smi` utility. If you want to extend the factory limits of the frequences, use `nvidia-settings` GUI utility.
 
 ### From the command line
 
-To overclock your memory frequency, send a command to nvidia utility:
+To overclock your memory frequency (extend the upper limit), send a command to nvidia utility:
 ```
 nvidia-settings --display=:10 --ctrl-display=:0 -a '[gpu:0]/GPUMemoryTransferRateOffsetAllPerformanceLevels=1200'
 ```
 The result applies to Nvidia X Server imidiately. Here
 * `--display=:10 --ctrl-display=:0` says nvidia utility to run via ssh (see section above)
 * `-a` - apply immidiately
-* `'[gpu:0]/GPUMemoryTransferRateOffsetAllPerformanceLevels=1200'` - shift base memory frequency by 1200 MHz up.
+* `'[gpu:0]/GPUMemoryTransferRateOffsetAllPerformanceLevels=1200'` - extend factory maximum RAM frequency by 1200 MHz.
 
 You can see the result of this command by querying Nvidia X Server back:
 ```
 nvidia-settings --display=:10 --ctrl-display=:0 -q '[gpu:0]/GPUMemoryTransferRateOffset[3]'
 ``` 
 
-**Interesting fact** The command line directives are not well documented and may change with time. It is a good idea to ask for the right/actual command on [Nvidia Developers Forum](https://forums.developer.nvidia.com/t/solved-nvidia-settings-a-gpu-1-gpumemorytransferrateoffset-3-2000-doesnt-take-effect/178021/2)
+It is also good idea to set up "maximum performance mode" by typing
+
+```
+nvidia-settings --display=:10 --ctrl-display=:0 -a [gpu:0]/GPUPowerMizerMode=1
+```
+
+This command requires GPU to stay on maximum alloable frequencies, even if there is no computational load. It encreases stability.
+
+
+**Interesting fact** The command line directives are not well documented and may change from one GPU generation to another. It is a good idea to ask for the right/actual command on [Nvidia Developers Forum](https://forums.developer.nvidia.com/t/solved-nvidia-settings-a-gpu-1-gpumemorytransferrateoffset-3-2000-doesnt-take-effect/178021/2)
 
 ### From GUI
 
 It is much easier to call Nvidia-utility `nvidia-settings --display=:10 --ctrl-display=:0` and to change memory clock offset from there (GPU#XX -> PowerMizer). But in my case, the GUI utility didn't perform as well as the command line. So I have opened an [issue](https://github.com/NVIDIA/nvidia-settings/issues/77) after discussion with Nvidia technicians.
 
-### Caution
-
-Please do apply offset by small steps. For instance, for Nvidia GeForce 3060 Ti LHR v2, the maximum possible offset is 6000 MHz (see GPU#XX -> PowerMizer in nvidia-settings GUI). Hence the reasonable incremental step is around 5-10% of 6000 MHz, which is 300-600 MHz per test. 
-
-After you change the memory clock offset a little, run the miner for a short time to see the current hash rate and GPU's temperature.
-
-You'll see that GPU fails to run at some point in time - the miner halts or gives an error. In my case, it happens at a 1900 MHz offset. I want to be sure my GPU runs stable for the long term, so I roll back to 20% of this threshold, which gives me comfortable 1400-1500 MHz offset. It increases my LHR GPU's hash rate from 37,5 to 42,2 Mhs (+12%). Not so much, but this is stable for long-term use.
 
 ### Undervoltage by GPU frequency
 
-While memory clock offset directly affects hash rate performance, the GPU offset mainly affects power consumption, I far as I noticed.
+As I mentioned earlier, locking the GPU frequency will reduce power consumption. If you lock it at too low frequencies, you'll drop down your hash rate. If you lock it at a very high level, you will not add essential results, since the RAM frquency may have much bigger impact on hash rate. So your aim is to find a "golden middle"
 
-The `sudo nvidia-smi` command may lock the GPU frequencies in the narrow corridor. For instance, the commands below set the persistent mode and lock GPU#0 frequency in 1350 to 1350 MHz.
+The `sudo nvidia-smi` command may lock the GPU frequencies in the narrow corridor. For instance, the commands below set the persistence mode and lock GPU#0 frequency in 1350 MHz.
 ```
 nvidia-smi -pm 1
-nvidia-smi --id=0 --lock-gpu-clocks=1350,1350
+nvidia-smi --id=0 --lock-gpu-clocks=1350
 ```
-If I run the miner again, I notice that the power consumption decreased from 200W to 115 +/- 10 W. The GPU temperature dropped to 58-60 degrees Celsium.
-
-This 1350 MHz is less than base 1950 MHz by 600Mhz. You can see the current and base clocks by running `nvidia-smi -q -d CLOCK` command.
-
-As far as I notice, when you decrease GPU clock, you decrease power consumption. So the aim is to guess what GPU locked frequency:
-
-1. Best increases power consumption, and at the same time
-2. Less affects your current hash rate.
-
-Of course, this is a subject of experimental tuning. In my case (Asus GeForce 3060 Ti Mini LHR), a locked GPU frequency of 1350 MHz and 1450 memory overclock works well.
+If I run the miner again, I notice that the power consumption decreased from 200W to 115 +/- 10 W. The GPU temperature dropped to 58-60 degrees Celsium. At the same time the hash rate is the same.
 
 ## Undervoltage by Power Limit
 
-Alternatively, you may decrease consumption by settings a maximum power limit for your GPU with the same "nvidia-smi command". For instance, the commands below set persistent mode and limit power consumption for GPU#0 by 120W.
+It always good idea to put the limits for power consumption as a protection measure (in case you accidentally lock the GPU frequencies at a very high frequency). The following command limits the power consumption by 120W:
 
 ```
-nvidia-smi -pm 1
 sudo nvidia-smi --id=0 -pl 120
 ```
 
