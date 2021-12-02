@@ -24,7 +24,7 @@ I also set the primary monitor to PCIE[slot-number], where the physical monitor 
 
 ## Nvidia Drivers Installation
 
-Here is a [beatiful article](https://www.linuxcapable.com/how-to-install-or-upgrade-nvidia-drivers-on-debian-11-bullseye/) describing the installation process. Please avoid installing the default driver included in apt package manager. Instead, choose the manual installation and with the latest driver available. 
+Here is a [beatiful article](https://www.linuxcapable.com/how-to-install-or-upgrade-nvidia-drivers-on-debian-11-bullseye/) describing the installation process. Please avoid installing the default driver included in apt package manager. Instead, choose the manual installation with the latest driver available. 
 
 I have tested both and noticed that the latest driver gives a better hash rate for LHR cards. 
 
@@ -34,11 +34,11 @@ P.S. If you are not familiar with **LHR** concept, please have a look at [this a
 
 ## The Nvidia X-Server configuration
 
-**Concept**. X Server is a daemon that allows rendering graphics. Nvidia X Server is a set of additional configurations to X Server which allow Nvidia GPU to render graphics/video.
+**Concept**. X Server is a daemon that allows rendering graphics. Nvidia X Server is a set of additional configurations to X Server to allow Nvidia GPU render graphics/video.
 
 By default, Nvidia protects its GPUs from accidental overlocking. For instance, if you call "nvidia-settings" GUI utility, you will notice no options to change clock offsets.
 
-Fortunately, you may add a few lines to the X-Server config file to fix that. An even better solution is to use "nvidia-xsettings" command, which adds necessary lines to the config file for you.
+Fortunately, you may add a few lines to the X-Server config file to change that. An even better solution is to use "nvidia-xsettings" command, which adds necessary lines to the config file for you.
 
 Run:
 ```
@@ -47,7 +47,7 @@ sudo nvidia-xconfig --enable-all-gpus --cool-bits=12
 
 It will update/create /etc/X11/xorg.conf file. You may notice that the new lines with the text "Option" "Coolbits 12" were added to the config file. This directive says "nvidia-settings" utility to allow overclocking options.
 
-Now, if you run `nvidia-settings` in your rig's terminal, you will see the Nvidia Setting GUI window, which has a new feature: Editable performance levels (in PowerMizer section). Ok, now you can overclock.
+Now, if you run `nvidia-settings` in your rig's terminal, you will see the Nvidia Setting GUI window, which has a new option: Editable performance levels (in PowerMizer section). Ok, now you can overclock.
 
 ## Miner installation
 
@@ -103,19 +103,107 @@ If you prefer to use ssh connection and run graphical utility remotely, you need
 
 ## Overclocking
 
-Depending on the load, the GPU changes its frequency. A sudden change of load causes a change in frequency - this leads to computational errors.
+The text below is my understanding of how overclocking works. Of course, it doesn't necessarily mean I am right, but I realized the following during my research.
+
+Depending on the load, the GPU changes its frequency. A sudden change of load causes a change in frequency, leading to power surges, instability and computational error.
+
+```
+                    p2
+p                  _________
+o        p1 ______/ |     ||
+w       ___/.......>|     || 
+e    __/  |........>|     || 
+r  _/     |........>|     || 
+-----frequency------+----(max)-->
+```
 
 The best option would be to lock the processor frequency at a certain level - this will increase the stability of the GPU.
 
-The higher the locked frequency of the processor, the higher the power consumption and the higher the computational performance. It is important for gaming.
+```
+p           locked _________
+o           ______/       ||
+w       ___/   |          ||
+e    __/       |          ||
+r  _/          |          ||
+-----frequency-+---------(max)-->
+```
 
-But for mining it is even more important the frequency of RAM. It determines the amount of information that the GPU can download / upload per second.
+The higher the locked frequency of the processor, the higher the power consumption and the higher the computational performance. 
 
-Increasing the frequency of the RAM directly affects the hashrate and it does not require as much power consumption as computational processor.
+Another critical parameter is the frequency of RAM. It determines the amount of information that the GPU can download/upload per second.
 
-Therefore, it is often a wise decision to increase the frequency of the RAM, while fixing the frequency of the GPU in the area where it consumes a little power.
+Higher RAM frequencies are not as power-greedy as GPU's frequencies.
 
-You can lock GPU frequencies and set up maximum power consumption limits with `nvidia-smi` utility. If you want to extend the factory limits of the frequences, use `nvidia-settings` GUI utility.
+Therefore, it is often a wise decision to increase the RAM frequency while fixing the GPU frequency in the area where it consumes a little power. You will increase the hash rate with a minor power consumption increase.
+
+Some mining algorithms are more sensitive to high GPU frequency, another - to high RAM frequency. If you increase GPU frequency, you are at risk of overheating your GPU due to high power consumption:
+
+```
+Great performance
+but with high temp.
+
+                  locked freq.
+p .................____|____
+o           ______/    |  ||
+w       ___/           |  ||
+e    __/               |  ||
+r  _/                  |  ||
+-----frequency-+-------+-(max)-->
+```
+
+Here is overclock comes to help. If you shift the maximum limit of your frequency, the whole function Power_consumption(frequency) will change.
+
+
+```
+                 locked freq.
+p .....................   _____________
+o .............._______|_/           ||
+w         _____/       |             ||
+e     ___/             |             ||
+r  __/                 |             ||
+-----frequency-+-------+-(old max)--(max)-->
+```
+
+You can see that you can decrease power consumption on a higher frequency by shifting the maximum frequency up. However, be cautious: setting a new maximum may lead to instability of GPU.
+
+Some miners who have good cooling systems may prefer to set a new GPU frequency beyond a factory maximum limit:
+
+```
+                             locked freq.
+p                         _________|____
+o               _________/         |  ||
+w         _____/                   |  ||
+e     ___/                         |  ||
+r  __/                             |  ||
+-----frequency-+-------+-(old max)-+-(max)-->
+```
+
+The locked frequency may be a certain point (in MHz) or a narrow corridor:
+
+```
+p          corridor_________
+o           ______/       ||
+w       ___/ |..|         ||
+e    __/     |..|         ||
+r  _/        |..|         ||
+-----frequency----------(max)-->
+```
+
+Remember, if the frequency you set requires power beyond a factory limit, then the changes will not take effect - you will get the maximum allowable (real) frequency instead of desired:
+
+```
+                desired freq.
+p       real freq. __|_____
+..limit.....|_____/--|---||
+w       ___/|--------|---||
+e    __/    |- N/A --|---||
+r  _/       |--------|---||
+-----frequency-------+--(max)-->
+```
+
+Nvidia provides us with tools to play with these settings.
+
+You can lock GPU frequencies and set up maximum power consumption limits with `nvidia-smi` utility. If you want to extend the factory limits of the frequency, use `nvidia-settings` GUI utility.
 
 ### From the command line
 
