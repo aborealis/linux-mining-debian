@@ -26,7 +26,15 @@ I also set the primary monitor to PCIE[slot-number], where the physical monitor 
 
 Here is a [beatiful article](https://www.linuxcapable.com/how-to-install-or-upgrade-nvidia-drivers-on-debian-11-bullseye/) describing the installation process. Please avoid installing the default driver included in apt package manager. Instead, choose the manual installation with the latest driver available. 
 
-I have tested both and noticed that the latest driver gives a better hash rate for LHR cards. 
+The idea of manual installation is following:
+1. Navigate [Nvidia Driver Download Page](https://www.nvidia.com/Download/Find.aspx?lang=en-us) to choose correct driver
+2. Download the driver to your home directory `wget hppt://linj/to/driver_name.run`
+3. Regenerate kernel's initramfs `sudo update-initramfs -u`
+4. Reboot in no-graphic mode `sudo systemctl set-default multi-user.target && sudo reboot`
+5. Run installer `bash name_of_driver.run`
+6. Finally reboot into graphical target `sudo systemctl set-default graphical.target && sudo reboot`
+
+I have tested different drivers and noticed that the x495 driver gives a better hash rate for LHR cards. 
 
 P.S. If you are not familiar with **LHR** concept, please have a look at [this article](https://gamingdope.com/how-to-unlock-and-mine-on-nvidia-lhr-v2-rtx-30-series-gpus/)
 
