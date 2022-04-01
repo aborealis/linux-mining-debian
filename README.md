@@ -40,7 +40,7 @@ P.S. If you are not familiar with **LHR** concept, please have a look at [this a
 
 **Tip.** For the Nvidia drivers to start and overclock correctly, you need a real monitor to be switched on and connected to one of the GPUs on the rig. You need it at least for the first time while you are tuning your GPUs.
 
-P.P.S. If for some reason you want to completely uninstall drivers, simply run `sudo apt-get --purge remove "*nvidia*"` and `sudo update-initramfs -u` in no-graphical mode.
+P.P.S. If for some reason you want to completely uninstall drivers, simply run `sudo apt-get --purge remove "*nvidia*"` and `sudo update-initramfs -u` in no-graphical mode. Then reboot into graphical mode as shown above.
 
 ## The Nvidia X-Server configuration
 
