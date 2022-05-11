@@ -281,7 +281,9 @@ The power consumption config is set up with nvidia-smi utility, which requires r
 
 ### Overclock settings on load
 
-The overclock settings are a bit trickier since they need to be auto-load after Nvidia X server starts, i.e., after GNOME (or another desktop environment) is loaded.
+The overclock settings need to be auto-load after Nvidia X server starts, i.e., after GNOME (or another desktop environment) is loaded.
+
+#### Option 1
 
 Not elegant, but the working solution is to create a startup application that GNOME runs on user login. Remember, we set a user autologin option in GNOME so that we can use this method.
 
@@ -298,12 +300,38 @@ Terminal=false
 Comment=NVIDIA GPU Settings
 ```
 
-Change "/home/aborealis/start_miner_overclock.sh" to your actial autoload script. 
+Change "/home/aborealis/start_miner_overclock.sh" to your actial autoload script.
+
+#### Option 2
+
+The right way is to start via systemd service. Create a file /etc/systemd/system/miner.service with following content
+
+```
+[Unit]
+Description=start miner script
+Wants=network-online.target
+After=network-online.target
+
+
+[Service]
+Environment="DISPLAY=:0"
+Environment="XAUTHORITY=/run/user/1000/gdm/Xauthority"
+ExecStart=/home/aborealis/start_miner_overclock-service.sh
+
+[Install]
+WantedBy=graphical.target
+```
+
+Here I use environment variable display (should be 0) and XAuthority. You van find the XAUTHORIY for your OS by typing ps a |grep X
+
+#### Your startup script
 
 In your script, write the command you want to send to X Server on load. In my case, this is:
 ```
 #!/bin/bash
 nvidia-settings -a '[gpu:0]/GPUMemoryTransferRateOffsetAllPerformanceLevels=1450'
+...
+### Example of commands sent to separate screen:
 screen -d -m -S miner
 sleep 5
 screen -S miner -X -p 0 stuff "/home/aborealis/miners/NBMiner_Linux/start_eth.sh^M"
@@ -312,7 +340,7 @@ screen -S miner -X -p 0 stuff "/home/aborealis/miners/NBMiner_Linux/start_eth.sh
 Explanation:
 
 1. First, I run the command to set up a 0th GPU memory offset to +1450 MHz,
-2. Then, I run the miner in a new screen session. It allows me to log in to the rig via ssh and switch to the running miner to see how it goes by typing `screen -r`. More about screen utility is [here](https://linuxize.com/post/how-to-use-linux-screen/)
+2. Then, I run the miner in a new screen session. It allows me to log in to the rig via ssh and switch to the running miner to see how it goes by typing `screen -r`. I use this approach withe the option 1 above. More about screen utility is [here](https://linuxize.com/post/how-to-use-linux-screen/)
 - `screen -d -m -S miner` starts a new screen named "miner" in detached mode
 - `sleep 5` I deliberately wait for 5 seconds to allow all Nvidia settings to apply (not an elegant solution, I know)
 - `screen -S miner -X -p 0 stuff "/home/aborealis/miners/NBMiner_Linux/start_eth.sh^M"` - 5 seconds later I send a command to new screen to start a miner. Here is "/home/aborealis/miners/NBMiner_Linux" is where NBMiner lives.
