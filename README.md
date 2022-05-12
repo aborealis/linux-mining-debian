@@ -302,6 +302,31 @@ Comment=NVIDIA GPU Settings
 
 Change "/home/aborealis/start_miner_overclock.sh" to your actial autoload script.
 
+In your script, write the command you want to send to X Server on load. In my case, this is:
+```
+#!/bin/bash
+nvidia-settings -a '[gpu:0]/GPUMemoryTransferRateOffsetAllPerformanceLevels=1450'
+...
+### Example of commands sent to separate screen:
+screen -d -m -S miner
+sleep 5
+screen -S miner -X -p 0 stuff "/home/aborealis/miners/NBMiner_Linux/start_eth.sh^M"
+```
+
+Explanation:
+
+1. First, I run the command to set up a 0th GPU memory offset to +1450 MHz,
+2. Similarly I arite other directives to X Server,
+3. Then, I run the miner in a new screen session. It allows me to log in to the rig via ssh and switch to the running miner to see how it goes by typing `screen -r`. I use this approach withe the option 1 above. More about screen utility is [here](https://linuxize.com/post/how-to-use-linux-screen/)
+- `screen -d -m -S miner` starts a new screen named "miner" in detached mode
+- `sleep 5` I deliberately wait for 5 seconds to allow all Nvidia settings to apply (not an elegant solution, I know)
+- `screen -S miner -X -p 0 stuff "/home/aborealis/miners/NBMiner_Linux/start_eth.sh^M"` - 5 seconds later I send a command to new screen to start a miner. Here is "/home/aborealis/miners/NBMiner_Linux" is where NBMiner lives.
+
+Finally, do not forget to make both
+- the startup script and 
+- your desktop app 
+executable (type `sudo chmod +x <filename>`)
+
 #### Option 2
 
 The right way is to start via systemd service. Create a file /etc/systemd/system/miner.service with following content
@@ -322,33 +347,24 @@ ExecStart=/home/aborealis/start_miner_overclock-service.sh
 WantedBy=graphical.target
 ```
 
-Here I use environment variable display (should be 0) and XAuthority. You van find the XAUTHORIY for your OS by typing ps a |grep X
+Here I use environment variable DISPLAY (it should be 0) and XAUTHORITY. You van find the XAUTHORIY value for your OS by typing `ps a |grep X`
 
-#### Your startup script
+Change "/home/aborealis/start_miner_overclock.sh" to your actial autoload script.
 
 In your script, write the command you want to send to X Server on load. In my case, this is:
 ```
 #!/bin/bash
 nvidia-settings -a '[gpu:0]/GPUMemoryTransferRateOffsetAllPerformanceLevels=1450'
 ...
-### Example of commands sent to separate screen:
-screen -d -m -S miner
-sleep 5
-screen -S miner -X -p 0 stuff "/home/aborealis/miners/NBMiner_Linux/start_eth.sh^M"
+/home/aborealis/miners/NBMiner_Linux/start_eth.sh
 ```
 
 Explanation:
 
 1. First, I run the command to set up a 0th GPU memory offset to +1450 MHz,
-2. Then, I run the miner in a new screen session. It allows me to log in to the rig via ssh and switch to the running miner to see how it goes by typing `screen -r`. I use this approach withe the option 1 above. More about screen utility is [here](https://linuxize.com/post/how-to-use-linux-screen/)
-- `screen -d -m -S miner` starts a new screen named "miner" in detached mode
-- `sleep 5` I deliberately wait for 5 seconds to allow all Nvidia settings to apply (not an elegant solution, I know)
-- `screen -S miner -X -p 0 stuff "/home/aborealis/miners/NBMiner_Linux/start_eth.sh^M"` - 5 seconds later I send a command to new screen to start a miner. Here is "/home/aborealis/miners/NBMiner_Linux" is where NBMiner lives.
+2. Similarly I arite other directives to X Server,
+3. Finally, I start the script as a root
 
-Finally, do not forget to make both
-- the startup script and 
-- your desktop app 
-executable (type `sudo chmod +x <filename>`)
 
 P.S. If you are luckier than me and your nvidia-setting utility reads/writes the ~/.nvidia-confog-rc configuration file as expected, 
 1. you may save your overclock configuration setting right into the config file (by adjusting settings in nvidia-config GUI app and then exiting the window).
