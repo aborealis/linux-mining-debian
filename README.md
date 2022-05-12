@@ -316,7 +316,7 @@ screen -S miner -X -p 0 stuff "/home/aborealis/miners/NBMiner_Linux/start_eth.sh
 Explanation:
 
 1. First, I run the command to set up a 0th GPU memory offset to +1450 MHz,
-2. Similarly I arite other directives to X Server,
+2. Similarly I write other directives to X Server,
 3. Then, I run the miner in a new screen session. It allows me to log in to the rig via ssh and switch to the running miner to see how it goes by typing `screen -r`. I use this approach withe the option 1 above. More about screen utility is [here](https://linuxize.com/post/how-to-use-linux-screen/)
 - `screen -d -m -S miner` starts a new screen named "miner" in detached mode
 - `sleep 5` I deliberately wait for 5 seconds to allow all Nvidia settings to apply (not an elegant solution, I know)
@@ -362,7 +362,7 @@ nvidia-settings -a '[gpu:0]/GPUMemoryTransferRateOffsetAllPerformanceLevels=1450
 Explanation:
 
 1. First, I run the command to set up a 0th GPU memory offset to +1450 MHz,
-2. Similarly I arite other directives to X Server,
+2. Similarly I write other directives to X Server,
 3. Finally, I start the script as a root
 
 
